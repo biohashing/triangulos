@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Triángulos en Juego</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f6feb'/%3E%3Cpolygon points='32,9 57,53 7,53' fill='%23f6b31b' stroke='%231b2a4a' stroke-width='4' stroke-linejoin='round'/%3E%3Cpath d='M17 53 A10 10 0 0 0 12.5 44.3' fill='none' stroke='%23c2337a' stroke-width='3.5'/%3E%3Cline x1='16' y1='31' x2='22' y2='34.5' stroke='%231b2a4a' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='48' y1='31' x2='42' y2='34.5' stroke='%231b2a4a' stroke-width='3.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;600;700;800&display=swap">
 <style>
@@ -37,6 +38,10 @@ body{background-color:var(--paper);color:var(--ink);font-family:var(--body);font
 header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 16px}
 h1{font-family:var(--display);font-weight:800;font-size:clamp(2rem,6vw,3rem);line-height:1;margin:0;letter-spacing:.5px;text-wrap:balance}
 h1 .t{color:var(--sun);-webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill}
+.ttl{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.snd{flex:none;font-size:1.3rem;width:46px;height:46px;border-radius:50%;border:2.5px solid var(--ink);background:var(--card);color:var(--ink);cursor:pointer;box-shadow:0 3px 0 var(--ink)}
+.snd[aria-pressed="false"]{opacity:.6}
+.snd:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
 .sub{margin:6px 0 0;color:var(--muted);font-weight:700}
 h2,h3{font-family:var(--display);font-weight:800;letter-spacing:.3px;margin:0;text-wrap:balance}
 h2{font-size:1.6rem} h3{font-size:1.25rem}
@@ -140,9 +145,12 @@ svg text{font-family:var(--body);font-weight:800;paint-order:stroke;stroke:var(-
 
 <div class="wrap">
   <header>
-    <div>
-      <h1>Triángulos <span class="t">en Juego</span></h1>
-      <p class="sub">Clasificalos por sus lados y por sus ángulos</p>
+    <div class="ttl">
+      <div>
+        <h1>Triángulos <span class="t">en Juego</span></h1>
+        <p class="sub">Clasificalos por sus lados y por sus ángulos</p>
+      </div>
+      <button class="snd" id="snd" aria-pressed="true" aria-label="Sonido" title="Sonido">🔊</button>
     </div>
     <nav role="tablist" aria-label="Secciones">
       <button role="tab" id="tab-aprende" data-tab="aprende" aria-selected="true">📘 Aprendé</button>
@@ -303,6 +311,16 @@ function genAngles(l,a){
     if(Math.abs(t[0]-t[1])>=8&&Math.abs(t[1]-t[2])>=8&&Math.abs(t[0]-t[2])>=8)return t}
 }
 
+/* ---------- sonido ---------- */
+let AC=null,SOUND=store.get('tri-sound')!==false;
+function tone(f,t0,d,type='triangle',vol=.18,f2){const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+d);
+  g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(vol,t0+.015);g.gain.exponentialRampToValueAtTime(0.0001,t0+d);o.connect(g).connect(AC.destination);o.start(t0);o.stop(t0+d+.02)}
+function sfx(kind){if(!SOUND)return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();const t=AC.currentTime+.01;
+  if(kind==='ok'){tone(659,t,.12);tone(988,t+.1,.22)}
+  else if(kind==='bad'){tone(220,t,.18,'square',.07,180);tone(160,t+.16,.28,'square',.07,120)}
+  else if(kind==='win'){[523,659,784,1047].forEach((f,i)=>tone(f,t+i*.09,.18));tone(1047,t+.36,.4,'sine',.14)}}catch(e){}}
+function sndUI(){const b=$('snd');b.textContent=SOUND?'🔊':'🔇';b.setAttribute('aria-pressed',SOUND);b.title=SOUND?'Apagar sonido':'Prender sonido'}
+
 /* ---------- APRENDÉ ---------- */
 const DEFS_L=[
   ['equi',[60,60,60],'Sus 3 lados son iguales.','“Equi” quiere decir igual.'],
@@ -364,7 +382,7 @@ function explain({l,a,t}){const s=t.sides,ang=t.angles;let el_='',ea='';
 $('clGo').onclick=()=>{
   if(!CL.checked){
     CL.checked=true;const okL=CL.selL===CL.cur.l,okA=CL.selA===CL.cur.a;CL.score+=(okL?1:0)+(okA?1:0);
-    if(okL&&okA){CL.streak++;if(CL.streak%3===0)confetti()}else CL.streak=0;
+    if(okL&&okA){CL.streak++;if(CL.streak%3===0)confetti()}else CL.streak=0;sfx(okL&&okA?'ok':'bad');
     for(const[box,sel,ans]of[[$('clL'),CL.selL,CL.cur.l],[$('clA'),CL.selA,CL.cur.a]])box.querySelectorAll('.opt').forEach(b=>{b.disabled=true;if(b.dataset.k===ans)b.classList.add('right');else if(b.dataset.k===sel)b.classList.add('wrong')});
     const [e1,e2]=explain(CL.cur),fb=$('clFb');fb.hidden=false;fb.className='fb '+(okL&&okA?'ok':'bad');
     fb.innerHTML=`${okL&&okA?'¡Perfecto! Es '+LADOS[CL.cur.l].toLowerCase()+' '+ANGS[CL.cur.a].toLowerCase()+'.':(okL||okA?'¡Casi! Acertaste uno de los dos.':'Esta vez no. Mirá por qué:')}<p>${e1}</p><p>${e2}</p>`;
@@ -375,7 +393,7 @@ $('clExpert').onchange=()=>{if(!CL.checked)clDraw()};
 function clEnd(){const max=CL.n*2,p=CL.score/max,best=Math.max(store.get('tri-best-cl')||0,CL.score);store.set('tri-best-cl',best);
   $('clPlay').hidden=true;const e=$('clEnd');e.hidden=false;
   e.innerHTML=`<h2>¡Terminaste!</h2><div class="stars">${stars(p)}</div><div class="big">${CL.score} / ${max}</div><p class="muted" style="margin:0">Tu mejor marca: ${best} / ${max}</p><button class="go" id="clAgain">Jugar de nuevo</button>`;
-  if(p>=.6)confetti();$('clAgain').onclick=clStart}
+  if(p>=.6){confetti();sfx('win')}$('clAgain').onclick=clStart}
 function clStart(){Object.assign(CL,{round:0,score:0,streak:0});$('clEnd').hidden=true;$('clPlay').hidden=false;clNew()}
 clStart();
 
@@ -416,8 +434,8 @@ function coNew(){let t;do{t=COMBOS[ri(0,COMBOS.length-1)]}while(CO.target&&t===C
 $('coGo').onclick=()=>{if(CO.solved){coNew();return}const m=coMeasure(),fb=$('coFb');fb.hidden=false;
   if(m.area<=0.4){fb.className='fb bad';fb.innerHTML='Eso no es un triángulo: los tres puntos están en línea.';return}
   const c=coClassify(m),[tl,ta]=CO.target;
-  if(c.l===tl&&c.a===ta){CO.solved=true;CO.done++;store.set('tri-built',CO.done);fb.className='fb ok';fb.innerHTML=`¡Lo lograste! Es ${LADOS[tl].toLowerCase()} ${ANGS[ta].toLowerCase()}.`;$('coGo').textContent='Siguiente desafío';$('coScore').textContent=`✅ ${CO.done} armados`;confetti()}
-  else{fb.className='fb bad';let h=`Ahora es <b>${LADOS[c.l].toLowerCase()} ${ANGS[c.a].toLowerCase()}</b>.`;
+  if(c.l===tl&&c.a===ta){CO.solved=true;CO.done++;store.set('tri-built',CO.done);fb.className='fb ok';fb.innerHTML=`¡Lo lograste! Es ${LADOS[tl].toLowerCase()} ${ANGS[ta].toLowerCase()}.`;$('coGo').textContent='Siguiente desafío';$('coScore').textContent=`✅ ${CO.done} armados`;confetti();sfx('win')}
+  else{sfx('bad');fb.className='fb bad';let h=`Ahora es <b>${LADOS[c.l].toLowerCase()} ${ANGS[c.a].toLowerCase()}</b>.`;
     if(c.l!==tl)h+=`<p>Lados: ${tl==='equi'?'necesitás los tres iguales.':tl==='iso'?'necesitás exactamente dos iguales.':'necesitás los tres distintos.'}</p>`;
     if(c.a!==ta)h+=`<p>Ángulos: ${ta==='rect'?'necesitás uno de 90°.':ta==='obt'?'necesitás uno de más de 90°.':'todos tienen que ser de menos de 90°.'}</p>`;fb.innerHTML=h}};
 $('coSkip').onclick=coNew;coNew();
@@ -440,14 +458,16 @@ const VF=[
   ['En un triángulo equilátero cada ángulo mide 60°.',true,'180° dividido en 3 partes iguales da 60°.']];
 const V={n:8,round:0,score:0,list:[]};
 function vfShow(){const[q]=V.list[V.round];$('vfQ').textContent=q;$('vfFb').hidden=true;$('vfNext').hidden=true;$('vfV').disabled=$('vfF').disabled=false;$('vfRound').textContent=`${V.round+1} / ${V.n}`;$('vfScore').textContent='⭐ '+V.score}
-function vfAns(ans){const[,ok,why]=V.list[V.round],good=ans===ok;if(good)V.score++;$('vfV').disabled=$('vfF').disabled=true;
+function vfAns(ans){const[,ok,why]=V.list[V.round],good=ans===ok;if(good)V.score++;sfx(good?'ok':'bad');$('vfV').disabled=$('vfF').disabled=true;
   const fb=$('vfFb');fb.hidden=false;fb.className='fb '+(good?'ok':'bad');fb.innerHTML=`${good?'¡Bien!':'¡Ups!'} Es ${ok?'verdadero':'falso'}.<p>${why}</p>`;
   $('vfScore').textContent='⭐ '+V.score;$('vfNext').hidden=false;$('vfNext').textContent=V.round+1<V.n?'Siguiente':'Ver resultado';$('vfNext').focus()}
 $('vfV').onclick=()=>vfAns(true);$('vfF').onclick=()=>vfAns(false);
 $('vfNext').onclick=()=>{V.round++;if(V.round<V.n)vfShow();else{const p=V.score/V.n,best=Math.max(store.get('tri-best-vf')||0,V.score);store.set('tri-best-vf',best);
-  $('vfPlay').hidden=true;const e=$('vfEnd');e.hidden=false;e.innerHTML=`<h2>¡Terminaste!</h2><div class="stars">${stars(p)}</div><div class="big">${V.score} / ${V.n}</div><p class="muted" style="margin:0">Tu mejor marca: ${best} / ${V.n}</p><button class="go" id="vfAgain">Jugar de nuevo</button>`;if(p>=.6)confetti();$('vfAgain').onclick=vfStart}};
+  $('vfPlay').hidden=true;const e=$('vfEnd');e.hidden=false;e.innerHTML=`<h2>¡Terminaste!</h2><div class="stars">${stars(p)}</div><div class="big">${V.score} / ${V.n}</div><p class="muted" style="margin:0">Tu mejor marca: ${best} / ${V.n}</p><button class="go" id="vfAgain">Jugar de nuevo</button>`;if(p>=.6){confetti();sfx('win')}$('vfAgain').onclick=vfStart}};
 function vfStart(){V.round=0;V.score=0;V.list=shuffle(VF.slice()).slice(0,V.n);$('vfEnd').hidden=true;$('vfPlay').hidden=false;vfShow()}
 vfStart();
+
+$('snd').onclick=()=>{SOUND=!SOUND;store.set('tri-sound',SOUND);sndUI();if(SOUND)sfx('ok')};sndUI();
 
 /* ---------- pestañas ---------- */
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>{x.setAttribute('aria-selected',x===b?'true':'false');$(x.dataset.tab).hidden=x!==b});try{history.replaceState(null,'','#'+b.dataset.tab)}catch(e){}});
