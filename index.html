@@ -425,7 +425,13 @@ const TIPS={
   'esc-rect':'Usá las líneas de la cuadrícula para hacer una esquina de 90°, con lados distintos.',
   'esc-obt':'Abrí mucho una esquina y no dejes lados iguales.'};
 const svgCo=$('coSvg');
-const coGrid=el('g',{},svgCo),coTri=el('g',{},svgCo),coH=el('g',{},svgCo);
+const coGrid=el('g',{},svgCo),coGuide=el('g',{},svgCo),coTri=el('g',{},svgCo),coH=el('g',{},svgCo);
+/* Puntos guía: mientras arrastra un vértice, marca los puntos de la grilla donde quedarían dos lados iguales */
+function coGuides(i){coGuide.innerHTML='';if(!CO.target||CO.target[0]==='esc')return;
+  const G=GRIDS[CO.grid],A=CO.pts[(i+1)%3],B=CO.pts[(i+2)%3],L=(p,q)=>G.len2(q[0]-p[0],q[1]-p[1]),ab=L(A,B);
+  G.dots().forEach(p=>{if((p[0]===A[0]&&p[1]===A[1])||(p[0]===B[0]&&p[1]===B[1]))return;
+    if((A[0]-p[0])*(B[1]-p[1])-(A[1]-p[1])*(B[0]-p[0])===0)return;
+    const pa=L(p,A),pb=L(p,B);if(pa===pb||pa===ab||pb===ab){const[x,y]=G.xy(p);el('circle',{cx:x,cy:y,r:5.5,fill:'var(--lados)',opacity:.35},coGuide)}})}
 function coDrawGrid(){const G=GRIDS[CO.grid];coGrid.innerHTML='';G.dots().forEach(p=>{const[x,y]=G.xy(p);el('circle',{cx:x,cy:y,r:1.8,fill:'var(--muted)',opacity:.55},coGrid)})}
 function coMeasure(){const G=GRIDS[CO.grid],P=CO.pts,vec=(a,b)=>[b[0]-a[0],b[1]-a[1]];
   const s2=[0,1,2].map(i=>{const v=vec(P[(i+1)%3],P[(i+2)%3]);return G.len2(v[0],v[1])});
@@ -445,16 +451,16 @@ function coClassify({s2,d2}){
 function coDraw(){const m=coMeasure(),pts=m.pts;
   if(m.cross!==0)drawTri(coTri,m,{showAngles:true,showSides:true,ticks:true,rightMark:true,unit:'',fs:14,r:24});else{coTri.innerHTML='';el('polyline',{points:pts.map(p=>p.join(',')).join(' '),fill:'none',stroke:'var(--ink)','stroke-width':3},coTri)}
   coH.innerHTML='';pts.forEach((p,i)=>{const h=el('g',{style:'cursor:grab'},coH);el('circle',{cx:p[0],cy:p[1],r:TOUCH?30:22,fill:'transparent'},h);el('circle',{cx:p[0],cy:p[1],r:TOUCH?12:9,fill:'var(--lados)',stroke:'var(--paper)','stroke-width':3},h);
-    h.addEventListener('pointerdown',e=>{CO.drag=i;svgCo.setPointerCapture(e.pointerId);e.preventDefault()})});
+    h.addEventListener('pointerdown',e=>{CO.drag=i;coGuides(i);svgCo.setPointerCapture(e.pointerId);e.preventDefault()})});
   $('coMeas').innerHTML=m.cross!==0?`<span>Lados: <b>${m.sideLabels.join(' · ')}</b> ${CO.grid==='sq'?'cuadraditos':'pasos'}</span><span>Ángulos: <i>${m.angleLabels.join(' · ')}</i></span>`:'<span>Los tres puntos están en línea: separalos.</span>'}
 svgCo.addEventListener('pointermove',e=>{if(CO.drag<0)return;const pt=svgCo.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(svgCo.getScreenCTM().inverse());
   const[x,y]=GRIDS[CO.grid].snap(p.x,p.y);
   if(CO.pts.some((q,j)=>j!==CO.drag&&q[0]===x&&q[1]===y))return;const c=CO.pts[CO.drag];if(c[0]!==x||c[1]!==y){CO.pts[CO.drag]=[x,y];if(!CO.solved)$('coFb').hidden=true;coDraw()}});
-['pointerup','pointercancel'].forEach(t=>svgCo.addEventListener(t,()=>CO.drag=-1));
+['pointerup','pointercancel'].forEach(t=>svgCo.addEventListener(t,()=>{CO.drag=-1;coGuide.innerHTML=''}));
 function coNew(){let t;do{t=COMBOS[ri(0,COMBOS.length-1)]}while(CO.target&&t===CO.target);CO.target=t;CO.solved=false;
   const g=t[0]==='equi'?'tri':'sq';if(g!==CO.grid){CO.grid=g;CO.pts=GRIDS[g].start.map(p=>p.slice());coDrawGrid()}
   $('coTarget').innerHTML=`<span class="l">${LADOS[t[0]]}</span> <span class="a">${ANGS[t[1]].toLowerCase()}</span>`;
-  $('coTip').textContent='Arrastrá los puntos azules. Cuando dos lados midan igual aparecen las rayitas, y si hay un ángulo de 90° aparece el cuadradito. Pista: '+TIPS[t.join('-')];$('coFb').hidden=true;$('coGo').textContent='¡Listo!';$('coScore').textContent=`✅ ${CO.done} armados`;coDraw()}
+  $('coTip').textContent='Arrastrá los puntos azules. Cuando dos lados midan igual aparecen las rayitas, y si hay un ángulo de 90° aparece el cuadradito. '+(t[0]==='esc'?'':'Mientras arrastrás un punto, los puntitos celestes marcan dónde quedarían dos lados iguales. ')+'Pista: '+TIPS[t.join('-')];$('coFb').hidden=true;$('coGo').textContent='¡Listo!';$('coScore').textContent=`✅ ${CO.done} armados`;coDraw()}
 $('coGo').onclick=()=>{if(CO.solved){coNew();return}const m=coMeasure(),fb=$('coFb');fb.hidden=false;
   if(m.cross===0){sfx('bad');fb.className='fb bad';fb.innerHTML='Eso no es un triángulo: los tres puntos están en línea.';return}
   const c=coClassify(m),[tl,ta]=CO.target;
