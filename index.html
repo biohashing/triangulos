@@ -261,7 +261,7 @@ function drawTri(g,data,o={}){
   if(o.ticks){
     const s=data.sides, eq=(x,y)=>Math.abs(x-y)<0.03*Math.max(x,y);
     const mark=[false,false,false];
-    if(eq(s[0],s[1])&&eq(s[1],s[2]))mark.fill(true);
+    if(data.eqMarks)data.eqMarks.forEach((m,i)=>mark[i]=m);else if(eq(s[0],s[1])&&eq(s[1],s[2]))mark.fill(true);
     else for(const[i,j] of[[0,1],[1,2],[0,2]])if(eq(s[i],s[j])){mark[i]=mark[j]=true}
     mark.forEach((m,i)=>{if(!m)return;const a=P[(i+1)%3],b=P[(i+2)%3],M=[(a[0]+b[0])/2,(a[1]+b[1])/2],d=unit(sub(b,a)),n=[-d[1],d[0]],h=o.tick||8;
       el('line',{x1:M[0]-n[0]*h,y1:M[1]-n[1]*h,x2:M[0]+n[0]*h,y2:M[1]+n[1]*h,stroke:'var(--lados)','stroke-width':3.5,'stroke-linecap':'round'},g)});
@@ -272,17 +272,17 @@ function drawTri(g,data,o={}){
     const r=Math.min(o.r||26,0.3*Math.min(len(sub(A,V)),len(sub(B,V))));
     const deg=data.angles[i];
     if(o.arcs===false)continue;
-    if(o.rightMark&&Math.round(deg)===90){const s=r*0.65;
+    if(o.rightMark&&(data.rightFlags?data.rightFlags[i]:Math.round(deg)===90)){const s=r*0.65;
       el('path',{d:`M${V[0]+u[0]*s},${V[1]+u[1]*s} L${V[0]+(u[0]+v[0])*s},${V[1]+(u[1]+v[1])*s} L${V[0]+v[0]*s},${V[1]+v[1]*s}`,fill:'none',stroke:'var(--angulos)','stroke-width':2.5},g)}
     else{const cr=u[0]*v[1]-u[1]*v[0];
       el('path',{d:`M${V[0]+u[0]*r},${V[1]+u[1]*r} A${r},${r} 0 0 ${cr>0?1:0} ${V[0]+v[0]*r},${V[1]+v[1]*r}`,fill:'none',stroke:'var(--angulos)','stroke-width':2.5},g)}
     if(o.showAngles){const bi=unit([u[0]+v[0],u[1]+v[1]]),d=r+fs*1.1;
-      const t=el('text',{x:V[0]+bi[0]*d,y:V[1]+bi[1]*d,'text-anchor':'middle','dominant-baseline':'central',fill:'var(--angulos)','font-size':fs},g);t.textContent=Math.round(deg)+'°'}
+      const t=el('text',{x:V[0]+bi[0]*d,y:V[1]+bi[1]*d,'text-anchor':'middle','dominant-baseline':'central',fill:'var(--angulos)','font-size':fs},g);t.textContent=data.angleLabels?data.angleLabels[i]:Math.round(deg)+'°'}
   }
   if(o.showSides){
     for(let i=0;i<3;i++){const a=P[(i+1)%3],b=P[(i+2)%3],M=[(a[0]+b[0])/2,(a[1]+b[1])/2],out=unit(sub(M,cen)),d=fs*1.3+(o.ticks?4:0);
       const t=el('text',{x:M[0]+out[0]*d,y:M[1]+out[1]*d,'text-anchor':'middle','dominant-baseline':'central',fill:'var(--lados)','font-size':fs},g);
-      t.textContent=fmt(data.sides[i])+(o.unit||' cm')}
+      t.textContent=(data.sideLabels?data.sideLabels[i]:fmt(data.sides[i]))+(o.unit??' cm')}
   }
 }
 
@@ -335,7 +335,7 @@ function buildDefs(id,list,names,cls){
   list.forEach(([k,ang,txt,tip])=>{
     const d=document.createElement('div');d.className='def '+cls;
     const svg=el('svg',{viewBox:'0 0 200 150'});const g=el('g',{},svg);
-    const t=triFromAngles(ang,5,200,150,cls==='l'?34:30,ang[0]===90?0:Math.PI);
+    const t=triFromAngles(ang,5,200,150,cls==='l'?34:30,ang[0]>=90?0:Math.PI);
     if(ang[0]===90)t.pts=t.pts;
     drawTri(g,t,{ticks:cls==='l',rightMark:true,showSides:cls==='l',showAngles:cls==='a',fs:13,r:20,arcs:cls==='a'});
     d.appendChild(svg);
@@ -349,7 +349,7 @@ buildDefs('defsL',DEFS_L,LADOS,'l');buildDefs('defsA',DEFS_A,ANGS,'a');
   let h='<thead><tr><th></th>'+Object.values(ANGS).map(n=>`<th>${n}</th>`).join('')+'</tr></thead><tbody>';
   for(const l in LADOS){h+=`<tr><th>${LADOS[l]}</th>`;for(const a in ANGS){h+=sample[l+'-'+a]?`<td data-k="${l}-${a}"></td>`:'<td class="no">No existe</td>'}h+='</tr>'}
   tb.innerHTML=h+'</tbody>';
-  tb.querySelectorAll('td[data-k]').forEach(td=>{const svg=el('svg',{viewBox:'0 0 120 80'});const t=triFromAngles(sample[td.dataset.k],5,120,80,10,Math.PI);
+  tb.querySelectorAll('td[data-k]').forEach(td=>{const svg=el('svg',{viewBox:'0 0 120 80'});const t=triFromAngles(sample[td.dataset.k],5,120,80,10,sample[td.dataset.k][0]>90?0:Math.PI);
     drawTri(el('g',{},svg),t,{ticks:true,rightMark:true,r:12,sw:2.5,tick:5});td.appendChild(svg)});
 })();
 
@@ -382,7 +382,7 @@ function explain({l,a,t}){const s=t.sides,ang=t.angles;let el_='',ea='';
 $('clGo').onclick=()=>{
   if(!CL.checked){
     CL.checked=true;const okL=CL.selL===CL.cur.l,okA=CL.selA===CL.cur.a;CL.score+=(okL?1:0)+(okA?1:0);
-    if(okL&&okA){CL.streak++;if(CL.streak%3===0)confetti()}else CL.streak=0;sfx(okL&&okA?'ok':'bad');
+    if(okL&&okA){CL.streak++;confetti()}else CL.streak=0;sfx(okL&&okA?'ok':'bad');
     for(const[box,sel,ans]of[[$('clL'),CL.selL,CL.cur.l],[$('clA'),CL.selA,CL.cur.a]])box.querySelectorAll('.opt').forEach(b=>{b.disabled=true;if(b.dataset.k===ans)b.classList.add('right');else if(b.dataset.k===sel)b.classList.add('wrong')});
     const [e1,e2]=explain(CL.cur),fb=$('clFb');fb.hidden=false;fb.className='fb '+(okL&&okA?'ok':'bad');
     fb.innerHTML=`${okL&&okA?'¡Perfecto! Es '+LADOS[CL.cur.l].toLowerCase()+' '+ANGS[CL.cur.a].toLowerCase()+'.':(okL||okA?'¡Casi! Acertaste uno de los dos.':'Esta vez no. Mirá por qué:')}<p>${e1}</p><p>${e2}</p>`;
@@ -398,46 +398,70 @@ function clStart(){Object.assign(CL,{round:0,score:0,streak:0});$('clEnd').hidde
 clStart();
 
 /* ---------- CONSTRUÍ ---------- */
-const GR=20,GW=20,GH=15,TOUCH=matchMedia('(pointer:coarse)').matches;
-const CO={pts:[[4,11],[15,12],[9,4]],target:null,done:store.get('tri-built')||0,drag:-1,solved:false};
+const TOUCH=matchMedia('(pointer:coarse)').matches;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const TH=22*Math.sqrt(3)/2;
+/* Dos grillas: cuadrada (para ángulos rectos) y triangular (la única donde el equilátero sale perfecto).
+   Las medidas se comparan con números enteros, así que "igual" significa exactamente igual. */
+const GRIDS={
+  sq:{xy:p=>[p[0]*20,p[1]*20],
+    snap:(x,y)=>[clamp(Math.round(x/20),1,19),clamp(Math.round(y/20),1,14)],
+    dots(){const a=[];for(let i=1;i<=19;i++)for(let j=1;j<=14;j++)a.push([i,j]);return a},
+    len2:(a,b)=>a*a+b*b, dot2:(a,b,c,d)=>2*(a*c+b*d),
+    start:[[4,11],[15,12],[9,4]]},
+  tri:{xy:p=>[12+(p[0]+p[1]/2)*22,14+p[1]*TH],
+    range:j=>[Math.ceil(2/22-j/2),Math.floor(374/22-j/2)],
+    snap(x,y){const j=clamp(Math.round((y-14)/TH),0,14),[a,b]=this.range(j);return[clamp(Math.round((x-12)/22-j/2),a,b),j]},
+    dots(){const a=[];for(let j=0;j<=14;j++){const[i0,i1]=this.range(j);for(let i=i0;i<=i1;i++)a.push([i,j])}return a},
+    len2:(a,b)=>a*a+a*b+b*b, dot2:(a,b,c,d)=>2*a*c+2*b*d+a*d+b*c,
+    start:[[1,12],[9,11],[1,4]]}};
+const CO={grid:null,pts:null,target:null,done:store.get('tri-built')||0,drag:-1,solved:false};
 const TIPS={
-  'equi-acut':'En la cuadrícula no sale perfecto: alcanza con que los tres lados queden casi iguales.',
-  'iso-acut':'Probá poner la punta justo en el medio, arriba de la base.',
+  'equi-acut':'Para este desafío la grilla cambia: los puntos forman triángulos. Buscá tres puntos que queden a la misma distancia entre sí.',
+  'iso-acut':'Hacé una base acostada con un número par de cuadraditos (por ejemplo 6) y poné la punta justo arriba del medio, bien alta.',
   'iso-rect':'Buscá una esquina de 90° y hacé los dos lados que la forman del mismo largo.',
-  'iso-obt':'Base larga y la punta en el medio, pero bien bajita.',
-  'esc-acut':'Que ningún lado se repita y que ninguna esquina pase de 90°.',
+  'iso-obt':'Hacé una base acostada y larga, con un número par de cuadraditos (por ejemplo 10), y poné la punta justo arriba del medio, a 1 o 2 cuadraditos de altura.',
+  'esc-acut':'Que ningún lado se repita y que ninguna esquina llegue a 90°.',
   'esc-rect':'Usá las líneas de la cuadrícula para hacer una esquina de 90°, con lados distintos.',
   'esc-obt':'Abrí mucho una esquina y no dejes lados iguales.'};
 const svgCo=$('coSvg');
-(function grid(){const d=el('defs',{},svgCo),p=el('pattern',{id:'gp',width:GR,height:GR,patternUnits:'userSpaceOnUse'},d);
-  el('circle',{cx:0,cy:0,r:1.6,fill:'var(--muted)',opacity:.5},p);el('circle',{cx:GR,cy:0,r:1.6,fill:'var(--muted)',opacity:.5},p);el('circle',{cx:0,cy:GR,r:1.6,fill:'var(--muted)',opacity:.5},p);el('circle',{cx:GR,cy:GR,r:1.6,fill:'var(--muted)',opacity:.5},p);
-  el('rect',{width:400,height:300,fill:'url(#gp)'},svgCo)})();
-const coTri=el('g',{},svgCo),coH=el('g',{},svgCo);
-function coMeasure(){const P=CO.pts;const sides=[0,1,2].map(i=>len(sub(P[(i+1)%3],P[(i+2)%3])));
-  const angles=[0,1,2].map(i=>{const u=sub(P[(i+1)%3],P[i]),v=sub(P[(i+2)%3],P[i]);return Math.acos(Math.max(-1,Math.min(1,(u[0]*v[0]+u[1]*v[1])/(len(u)*len(v)))))*180/Math.PI});
-  const area=Math.abs((P[1][0]-P[0][0])*(P[2][1]-P[0][1])-(P[2][0]-P[0][0])*(P[1][1]-P[0][1]))/2;return{sides,angles,area}}
-function coClassify({sides:s,angles}){const eq=(x,y)=>Math.abs(x-y)<0.05,near=(x,y)=>Math.abs(x-y)/Math.max(x,y)<0.04;
-  const l=near(s[0],s[1])&&near(s[1],s[2])&&near(s[0],s[2])?'equi':(eq(s[0],s[1])||eq(s[1],s[2])||eq(s[0],s[2]))?'iso':'esc';
-  const m=Math.round(Math.max(...angles));return{l,a:m===90?'rect':m>90?'obt':'acut'}}
-function coDraw(){const m=coMeasure();const pts=CO.pts.map(p=>[p[0]*GR,p[1]*GR]);
-  if(m.area>0.4)drawTri(coTri,{pts,angles:m.angles,sides:m.sides},{showAngles:true,showSides:true,unit:'',fs:14,r:24});else{coTri.innerHTML='';el('polyline',{points:pts.map(p=>p.join(',')).join(' '),fill:'none',stroke:'var(--ink)','stroke-width':3},coTri)}
+const coGrid=el('g',{},svgCo),coTri=el('g',{},svgCo),coH=el('g',{},svgCo);
+function coDrawGrid(){const G=GRIDS[CO.grid];coGrid.innerHTML='';G.dots().forEach(p=>{const[x,y]=G.xy(p);el('circle',{cx:x,cy:y,r:1.8,fill:'var(--muted)',opacity:.55},coGrid)})}
+function coMeasure(){const G=GRIDS[CO.grid],P=CO.pts,vec=(a,b)=>[b[0]-a[0],b[1]-a[1]];
+  const s2=[0,1,2].map(i=>{const v=vec(P[(i+1)%3],P[(i+2)%3]);return G.len2(v[0],v[1])});
+  const d2=[0,1,2].map(i=>{const u=vec(P[i],P[(i+1)%3]),v=vec(P[i],P[(i+2)%3]);return G.dot2(u[0],u[1],v[0],v[1])});
+  const u=vec(P[0],P[1]),v=vec(P[0],P[2]),cross=u[0]*v[1]-u[1]*v[0];
+  const pts=P.map(p=>G.xy(p)),sides=s2.map(Math.sqrt);
+  const angles=[0,1,2].map(i=>{const a=sub(pts[(i+1)%3],pts[i]),b=sub(pts[(i+2)%3],pts[i]);return Math.acos(clamp((a[0]*b[0]+a[1]*b[1])/(len(a)*len(b)),-1,1))*180/Math.PI});
+  let dec=1;const lab=n=>n.toFixed(dec).replace('.',',');
+  for(const[i,j]of[[0,1],[1,2],[0,2]])if(s2[i]!==s2[j]&&lab(sides[i])===lab(sides[j]))dec=2;
+  const sideLabels=sides.map(lab);
+  const angleLabels=angles.map((a,i)=>d2[i]===0?'90°':Math.round(a)===90?a.toFixed(1).replace('.',',')+'°':Math.round(a)+'°');
+  const eqMarks=[0,1,2].map(i=>s2[i]===s2[(i+1)%3]||s2[i]===s2[(i+2)%3]),rightFlags=d2.map(x=>x===0);
+  return{s2,d2,cross,pts,sides,angles,sideLabels,angleLabels,eqMarks,rightFlags}}
+function coClassify({s2,d2}){
+  const l=s2[0]===s2[1]&&s2[1]===s2[2]?'equi':(s2[0]===s2[1]||s2[1]===s2[2]||s2[0]===s2[2])?'iso':'esc';
+  return{l,a:d2.some(x=>x===0)?'rect':d2.some(x=>x<0)?'obt':'acut'}}
+function coDraw(){const m=coMeasure(),pts=m.pts;
+  if(m.cross!==0)drawTri(coTri,m,{showAngles:true,showSides:true,ticks:true,rightMark:true,unit:'',fs:14,r:24});else{coTri.innerHTML='';el('polyline',{points:pts.map(p=>p.join(',')).join(' '),fill:'none',stroke:'var(--ink)','stroke-width':3},coTri)}
   coH.innerHTML='';pts.forEach((p,i)=>{const h=el('g',{style:'cursor:grab'},coH);el('circle',{cx:p[0],cy:p[1],r:TOUCH?30:22,fill:'transparent'},h);el('circle',{cx:p[0],cy:p[1],r:TOUCH?12:9,fill:'var(--lados)',stroke:'var(--paper)','stroke-width':3},h);
     h.addEventListener('pointerdown',e=>{CO.drag=i;svgCo.setPointerCapture(e.pointerId);e.preventDefault()})});
-  $('coMeas').innerHTML=m.area>0.4?`<span>Lados: <b>${m.sides.map(fmt).join(' · ')}</b> cuadraditos</span><span>Ángulos: <i>${m.angles.map(a=>Math.round(a)+'°').join(' · ')}</i></span>`:'<span>Está muy chato: separá los puntos.</span>'}
+  $('coMeas').innerHTML=m.cross!==0?`<span>Lados: <b>${m.sideLabels.join(' · ')}</b> ${CO.grid==='sq'?'cuadraditos':'pasos'}</span><span>Ángulos: <i>${m.angleLabels.join(' · ')}</i></span>`:'<span>Los tres puntos están en línea: separalos.</span>'}
 svgCo.addEventListener('pointermove',e=>{if(CO.drag<0)return;const pt=svgCo.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(svgCo.getScreenCTM().inverse());
-  const x=Math.max(1,Math.min(GW-1,Math.round(p.x/GR))),y=Math.max(1,Math.min(GH-1,Math.round(p.y/GR)));
+  const[x,y]=GRIDS[CO.grid].snap(p.x,p.y);
   if(CO.pts.some((q,j)=>j!==CO.drag&&q[0]===x&&q[1]===y))return;const c=CO.pts[CO.drag];if(c[0]!==x||c[1]!==y){CO.pts[CO.drag]=[x,y];if(!CO.solved)$('coFb').hidden=true;coDraw()}});
 ['pointerup','pointercancel'].forEach(t=>svgCo.addEventListener(t,()=>CO.drag=-1));
 function coNew(){let t;do{t=COMBOS[ri(0,COMBOS.length-1)]}while(CO.target&&t===CO.target);CO.target=t;CO.solved=false;
+  const g=t[0]==='equi'?'tri':'sq';if(g!==CO.grid){CO.grid=g;CO.pts=GRIDS[g].start.map(p=>p.slice());coDrawGrid()}
   $('coTarget').innerHTML=`<span class="l">${LADOS[t[0]]}</span> <span class="a">${ANGS[t[1]].toLowerCase()}</span>`;
-  $('coTip').textContent='Arrastrá los puntos azules. Pista: '+TIPS[t.join('-')];$('coFb').hidden=true;$('coGo').textContent='¡Listo!';$('coScore').textContent=`✅ ${CO.done} armados`;coDraw()}
+  $('coTip').textContent='Arrastrá los puntos azules. Cuando dos lados midan igual aparecen las rayitas, y si hay un ángulo de 90° aparece el cuadradito. Pista: '+TIPS[t.join('-')];$('coFb').hidden=true;$('coGo').textContent='¡Listo!';$('coScore').textContent=`✅ ${CO.done} armados`;coDraw()}
 $('coGo').onclick=()=>{if(CO.solved){coNew();return}const m=coMeasure(),fb=$('coFb');fb.hidden=false;
-  if(m.area<=0.4){fb.className='fb bad';fb.innerHTML='Eso no es un triángulo: los tres puntos están en línea.';return}
+  if(m.cross===0){sfx('bad');fb.className='fb bad';fb.innerHTML='Eso no es un triángulo: los tres puntos están en línea.';return}
   const c=coClassify(m),[tl,ta]=CO.target;
   if(c.l===tl&&c.a===ta){CO.solved=true;CO.done++;store.set('tri-built',CO.done);fb.className='fb ok';fb.innerHTML=`¡Lo lograste! Es ${LADOS[tl].toLowerCase()} ${ANGS[ta].toLowerCase()}.`;$('coGo').textContent='Siguiente desafío';$('coScore').textContent=`✅ ${CO.done} armados`;confetti();sfx('win')}
   else{sfx('bad');fb.className='fb bad';let h=`Ahora es <b>${LADOS[c.l].toLowerCase()} ${ANGS[c.a].toLowerCase()}</b>.`;
-    if(c.l!==tl)h+=`<p>Lados: ${tl==='equi'?'necesitás los tres iguales.':tl==='iso'?'necesitás exactamente dos iguales.':'necesitás los tres distintos.'}</p>`;
-    if(c.a!==ta)h+=`<p>Ángulos: ${ta==='rect'?'necesitás uno de 90°.':ta==='obt'?'necesitás uno de más de 90°.':'todos tienen que ser de menos de 90°.'}</p>`;fb.innerHTML=h}};
+    if(c.l!==tl)h+=`<p>Lados: ${tl==='equi'?'necesitás los tres exactamente iguales.':tl==='iso'?'necesitás exactamente dos iguales.':'necesitás los tres distintos.'}</p>`;
+    if(c.a!==ta)h+=`<p>Ángulos: ${ta==='rect'?'necesitás uno de 90° justo.':ta==='obt'?'necesitás uno de más de 90°.':'todos tienen que ser de menos de 90°.'}</p>`;fb.innerHTML=h}};
 $('coSkip').onclick=coNew;coNew();
 
 /* ---------- V o F ---------- */
@@ -458,7 +482,7 @@ const VF=[
   ['En un triángulo equilátero cada ángulo mide 60°.',true,'180° dividido en 3 partes iguales da 60°.']];
 const V={n:8,round:0,score:0,list:[]};
 function vfShow(){const[q]=V.list[V.round];$('vfQ').textContent=q;$('vfFb').hidden=true;$('vfNext').hidden=true;$('vfV').disabled=$('vfF').disabled=false;$('vfRound').textContent=`${V.round+1} / ${V.n}`;$('vfScore').textContent='⭐ '+V.score}
-function vfAns(ans){const[,ok,why]=V.list[V.round],good=ans===ok;if(good)V.score++;sfx(good?'ok':'bad');$('vfV').disabled=$('vfF').disabled=true;
+function vfAns(ans){const[,ok,why]=V.list[V.round],good=ans===ok;if(good){V.score++;confetti()}sfx(good?'ok':'bad');$('vfV').disabled=$('vfF').disabled=true;
   const fb=$('vfFb');fb.hidden=false;fb.className='fb '+(good?'ok':'bad');fb.innerHTML=`${good?'¡Bien!':'¡Ups!'} Es ${ok?'verdadero':'falso'}.<p>${why}</p>`;
   $('vfScore').textContent='⭐ '+V.score;$('vfNext').hidden=false;$('vfNext').textContent=V.round+1<V.n?'Siguiente':'Ver resultado';$('vfNext').focus()}
 $('vfV').onclick=()=>vfAns(true);$('vfF').onclick=()=>vfAns(false);
