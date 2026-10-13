@@ -108,6 +108,7 @@ table.combo{border-collapse:separate;border-spacing:6px;width:100%;min-width:440
 .big{font-family:var(--display);font-weight:800;font-size:3rem;line-height:1}
 svg text{font-family:var(--body);font-weight:800;paint-order:stroke;stroke:var(--paper);stroke-width:5px;stroke-linejoin:round}
 .confetti{position:fixed;top:-20px;width:14px;height:12px;clip-path:polygon(50% 0,100% 100%,0 100%);pointer-events:none;z-index:9;animation:fall 1.6s ease-in forwards}
+#construi,.board,.board *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 @keyframes fall{to{transform:translateY(105vh) rotate(540deg);opacity:.6}}
 @media (prefers-reduced-motion:reduce){.confetti{display:none}}
 /* tablet */
@@ -324,8 +325,8 @@ function sndUI(){const b=$('snd');b.textContent=SOUND?'🔊':'🔇';b.setAttribu
 /* ---------- APRENDÉ ---------- */
 const DEFS_L=[
   ['equi',[60,60,60],'Sus 3 lados son iguales.','“Equi” quiere decir igual.'],
-  ['iso',[40,70,70],'Tiene 2 lados iguales y uno distinto.','Pensá en un tobogán o en un techo a dos aguas.'],
-  ['esc',[35,60,85],'Sus 3 lados son distintos.','Como una escalera torcida: nada coincide.']];
+  ['iso',[70,70,40],'Tiene 2 lados iguales y uno distinto.','Pensá en un tobogán o en un techo a dos aguas.'],
+  ['esc',[30,55,95],'Sus 3 lados son distintos.','Como una escalera torcida: nada coincide.']];
 const DEFS_A=[
   ['acut',[50,60,70],'Sus 3 ángulos son agudos (menos de 90°).','Agudo = puntiagudo, como la punta de un lápiz.'],
   ['rect',[90,35,55],'Tiene 1 ángulo recto (90°).','Como la esquina de una hoja.'],
@@ -335,7 +336,7 @@ function buildDefs(id,list,names,cls){
   list.forEach(([k,ang,txt,tip])=>{
     const d=document.createElement('div');d.className='def '+cls;
     const svg=el('svg',{viewBox:'0 0 200 150'});const g=el('g',{},svg);
-    const t=triFromAngles(ang,5,200,150,cls==='l'?34:30,ang[0]>=90?0:Math.PI);
+    const t=triFromAngles(ang,5,200,150,cls==='l'?34:30,cls==='l'||ang[0]>=90?0:Math.PI);
     if(ang[0]===90)t.pts=t.pts;
     drawTri(g,t,{ticks:cls==='l',rightMark:true,showSides:cls==='l',showAngles:cls==='a',fs:13,r:20,arcs:cls==='a'});
     d.appendChild(svg);
@@ -457,6 +458,10 @@ svgCo.addEventListener('pointermove',e=>{if(CO.drag<0)return;const pt=svgCo.crea
   const[x,y]=GRIDS[CO.grid].snap(p.x,p.y);
   if(CO.pts.some((q,j)=>j!==CO.drag&&q[0]===x&&q[1]===y))return;const c=CO.pts[CO.drag];if(c[0]!==x||c[1]!==y){CO.pts[CO.drag]=[x,y];if(!CO.solved)$('coFb').hidden=true;coDraw()}});
 ['pointerup','pointercancel'].forEach(t=>svgCo.addEventListener(t,()=>{CO.drag=-1;coGuide.innerHTML=''}));
+const noSel=()=>{try{const s=window.getSelection();if(s&&s.rangeCount)s.removeAllRanges()}catch(e){}};
+svgCo.addEventListener('pointerdown',noSel);svgCo.addEventListener('selectstart',e=>e.preventDefault());
+svgCo.addEventListener('touchstart',e=>{if(e.target.closest('g')&&e.target.closest('g').parentNode===coH)e.preventDefault()},{passive:false});
+svgCo.addEventListener('contextmenu',e=>e.preventDefault());
 function coNew(){let t;do{t=COMBOS[ri(0,COMBOS.length-1)]}while(CO.target&&t===CO.target);CO.target=t;CO.solved=false;
   const g=t[0]==='equi'?'tri':'sq';if(g!==CO.grid){CO.grid=g;CO.pts=GRIDS[g].start.map(p=>p.slice());coDrawGrid()}
   $('coTarget').innerHTML=`<span class="l">${LADOS[t[0]]}</span> <span class="a">${ANGS[t[1]].toLowerCase()}</span>`;
