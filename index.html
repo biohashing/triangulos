@@ -3,6 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Juego para aprender a clasificar triángulos según sus lados y sus ángulos.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://triangulos.satori.ar/">
+<meta property="og:title" content="Triángulos en Juego">
+<meta property="og:description" content="Clasificalos por sus lados y por sus ángulos.">
+<meta property="og:image" content="https://triangulos.satori.ar/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Triángulos en Juego</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f6feb'/%3E%3Cpolygon points='32,9 57,53 7,53' fill='%23f6b31b' stroke='%231b2a4a' stroke-width='4' stroke-linejoin='round'/%3E%3Cpath d='M17 53 A10 10 0 0 0 12.5 44.3' fill='none' stroke='%23c2337a' stroke-width='3.5'/%3E%3Cline x1='16' y1='31' x2='22' y2='34.5' stroke='%231b2a4a' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='48' y1='31' x2='42' y2='34.5' stroke='%231b2a4a' stroke-width='3.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,7 +50,8 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 h1{font-family:var(--display);font-weight:800;font-size:clamp(2rem,6vw,3rem);line-height:1;margin:0;letter-spacing:.5px;text-wrap:balance}
 h1 .t{color:var(--sun);-webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill}
 .ttl{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.snd{flex:none;font-size:1.3rem;width:46px;height:46px;border-radius:50%;border:2.5px solid var(--ink);background:var(--card);color:var(--ink);cursor:pointer;box-shadow:0 3px 0 var(--ink)}
+header{position:relative;padding-right:60px}
+.snd{position:absolute;top:0;right:0;flex:none;font-size:1.3rem;width:46px;height:46px;border-radius:50%;border:2.5px solid var(--ink);background:var(--card);color:var(--ink);cursor:pointer;box-shadow:0 3px 0 var(--ink)}
 .snd[aria-pressed="false"]{opacity:.6}
 .snd:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
 .sub{margin:6px 0 0;color:var(--muted);font-weight:700}
@@ -73,6 +85,12 @@ table.combo{border-collapse:separate;border-spacing:6px;width:100%;min-width:440
 .combo td{border:2px solid var(--line);border-radius:12px;text-align:center;padding:4px;height:96px;vertical-align:middle}
 .combo td svg{width:100%;max-width:120px;height:80px}
 .combo td.no{background:repeating-linear-gradient(45deg,transparent 0 8px,var(--bad-soft) 8px 16px);color:var(--bad);font-weight:800}
+.steps{display:flex;flex-wrap:wrap;gap:10px}
+.step{display:flex;align-items:center;gap:6px;border:2px solid var(--line);border-radius:12px;padding:6px 8px;background:var(--card)}
+.step .lab{font-weight:800;color:var(--muted);margin-right:2px}
+.step output{min-width:3.6em;text-align:center;font-weight:800;font-variant-numeric:tabular-nums}
+.sb{width:36px;height:36px;border-radius:10px;border:2px solid var(--ink);background:var(--paper);color:var(--ink);font:800 1.2rem var(--body);cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.sb:active{transform:translateY(1px)}
 .note{background:var(--fill);border-radius:12px;padding:10px 14px;font-weight:700}
 /* juego */
 .bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between}
@@ -175,6 +193,15 @@ svg text{font-family:var(--body);font-weight:800;paint-order:stroke;stroke:var(-
     <div class="card stack">
       <div class="row"><span class="tag a">Según sus ángulos</span></div>
       <div class="defs" id="defsA"></div>
+    </div>
+    <div class="card stack">
+      <h2>¿Se puede armar el triángulo?</h2>
+      <p style="margin:0">No con cualquier medida se forma un triángulo. Cada lado tiene que ser <b>más corto que la suma de los otros dos</b>. Alcanza con mirar el lado más largo: si los otros dos sumados lo superan, se puede armar.</p>
+      <p class="note" style="margin:0">Ejemplo: con 3, 4 y 8 cm no se puede, porque 3 + 4 = 7 y 7 es menos que 8. Con 3, 4 y 6 cm sí, porque 3 + 4 = 7 y 7 es más que 6.</p>
+      <p class="muted" style="margin:0;font-weight:700">Probá cambiando las medidas:</p>
+      <div class="steps" id="dgCtl"></div>
+      <svg id="dgSvg" class="board" viewBox="0 0 340 215" role="img" aria-label="Dibujo de los tres lados"></svg>
+      <div id="dgFb" class="fb"></div>
     </div>
     <div class="card stack">
       <h2>¿Cuáles se pueden combinar?</h2>
@@ -490,7 +517,12 @@ const VF=[
   ['Un triángulo isósceles tiene dos ángulos iguales.',true,'Los dos ángulos de la base, los que están junto al lado distinto, son iguales.'],
   ['Un triángulo escaleno puede ser rectángulo.',true,'Por ejemplo uno con lados de 3, 4 y 5 cm.'],
   ['Puede existir un triángulo con ángulos de 100°, 50° y 40°.',false,'100 + 50 + 40 = 190°. Se pasa de 180°.'],
-  ['En un triángulo equilátero cada ángulo mide 60°.',true,'180° dividido en 3 partes iguales da 60°.']];
+  ['En un triángulo equilátero cada ángulo mide 60°.',true,'180° dividido en 3 partes iguales da 60°.'],
+  ['Se puede armar un triángulo con lados de 3 cm, 4 cm y 8 cm.',false,'3 + 4 = 7, y 7 es menos que 8. Los dos lados cortos no llegan a tocarse.'],
+  ['Se puede armar un triángulo con lados de 5 cm, 6 cm y 10 cm.',true,'5 + 6 = 11, y 11 es más que 10. Alcanza.'],
+  ['Se puede armar un triángulo con lados de 4 cm, 4 cm y 8 cm.',false,'4 + 4 = 8, igual al lado largo. Los lados quedan acostados sobre la base y no se forma un triángulo.'],
+  ['En todo triángulo, cada lado es más corto que la suma de los otros dos.',true,'Si no fuera así, los otros dos lados no alcanzarían a cerrar el triángulo.'],
+  ['Con lados de 2 cm, 2 cm y 3 cm se forma un triángulo isósceles.',true,'2 + 2 = 4, más que 3, así que se puede armar. Y tiene dos lados iguales.']];
 const V={n:8,round:0,score:0,list:[]};
 function vfShow(){const[q]=V.list[V.round];$('vfQ').textContent=q;$('vfFb').hidden=true;$('vfNext').hidden=true;$('vfV').disabled=$('vfF').disabled=false;$('vfRound').textContent=`${V.round+1} / ${V.n}`;$('vfScore').textContent='⭐ '+V.score}
 function vfAns(ans){const[,ok,why]=V.list[V.round],good=ans===ok;if(good){V.score++;confetti()}sfx(good?'ok':'bad');$('vfV').disabled=$('vfF').disabled=true;
@@ -501,6 +533,47 @@ $('vfNext').onclick=()=>{V.round++;if(V.round<V.n)vfShow();else{const p=V.score/
   $('vfPlay').hidden=true;const e=$('vfEnd');e.hidden=false;e.innerHTML=`<h2>¡Terminaste!</h2><div class="stars">${stars(p)}</div><div class="big">${V.score} / ${V.n}</div><p class="muted" style="margin:0">Tu mejor marca: ${best} / ${V.n}</p><button class="go" id="vfAgain">Jugar de nuevo</button>`;if(p>=.6){confetti();sfx('win')}$('vfAgain').onclick=vfStart}};
 function vfStart(){V.round=0;V.score=0;V.list=shuffle(VF.slice()).slice(0,V.n);$('vfEnd').hidden=true;$('vfPlay').hidden=false;vfShow()}
 vfStart();
+
+/* ---------- ¿SE PUEDE ARMAR? (desigualdad triangular) ---------- */
+const DG={v:[3,4,8]};
+(function(){const box=$('dgCtl');['A','B','C'].forEach((n,i)=>{const d=document.createElement('div');d.className='step';
+  d.innerHTML=`<span class="lab">Lado ${n}</span><button class="sb" data-i="${i}" data-d="-1" aria-label="Achicar lado ${n}">−</button><output id="dgV${i}"></output><button class="sb" data-i="${i}" data-d="1" aria-label="Agrandar lado ${n}">+</button>`;box.appendChild(d)});
+  box.addEventListener('click',e=>{const b=e.target.closest('.sb');if(!b)return;const i=+b.dataset.i;DG.v[i]=clamp(DG.v[i]+ +b.dataset.d,1,12);dgDraw()})})();
+function dgDraw(){
+  DG.v.forEach((x,i)=>$('dgV'+i).textContent=x+' cm');
+  const svg=$('dgSvg');svg.innerHTML='';const X0=30,Y0=180;
+  const idx=[0,1,2].sort((p,q)=>DG.v[q]-DG.v[p]);const L=DG.v[idx[0]],s1=DG.v[idx[1]],s2=DG.v[idx[2]];
+  const names=['A','B','C'],nL=names[idx[0]],n1=names[idx[1]],n2=names[idx[2]],sum=s1+s2,ok=sum>L;
+  const ax=(L*L+s1*s1-s2*s2)/(2*L),ay=ok?Math.sqrt(Math.max(0,s1*s1-ax*ax)):0;
+  const S=Math.min(280/L,ok?140/ay:99),x0=X0+(280-L*S)/2,x1=x0+L*S;
+  if(ok){
+    const pts=[[x0,Y0],[x1,Y0],[x0+ax*S,Y0-ay*S]];
+    const ang=(o,p,q)=>Math.acos(clamp((p*p+q*q-o*o)/(2*p*q),-1,1))*180/Math.PI;
+    const g=el('g',{},svg);drawTri(g,{pts,sides:[s2,s1,L],sideLabels:[s2,s1,L].map(String),angles:[ang(s2,L,s1),ang(s1,L,s2),ang(L,s1,s2)]},{ticks:true,showSides:true,fs:14,r:20,arcs:false,unit:' cm'});
+  }else{
+    const lineAttrs=(x,y,X,Y,c,w)=>({x1:x,y1:y,x2:X,y2:Y,stroke:c,'stroke-width':w,'stroke-linecap':'round'});
+    el('line',lineAttrs(x0,Y0,x1,Y0,'var(--ink)',4),svg);
+    const t=el('text',{x:(x0+x1)/2,y:Y0+22,'text-anchor':'middle',fill:'var(--ink)','font-size':14},svg);t.textContent=`${nL} = ${L} cm`;
+    const h=70;
+    if(sum<L){
+      el('line',lineAttrs(x0,Y0-h,x0+s1*S,Y0-h,'var(--lados)',6),svg);el('line',lineAttrs(x1,Y0-h,x1-s2*S,Y0-h,'var(--angulos)',6),svg);
+      el('line',{x1:x0+s1*S,y1:Y0-h,x2:x1-s2*S,y2:Y0-h,stroke:'var(--bad)','stroke-width':3,'stroke-dasharray':'4 5'},svg);
+      const gt=el('text',{x:(x0+s1*S+x1-s2*S)/2,y:Y0-h-16,'text-anchor':'middle',fill:'var(--bad)','font-size':14},svg);gt.textContent=`faltan ${L-sum} cm`;
+    }else{
+      el('line',lineAttrs(x0,Y0-h,x0+s1*S,Y0-h,'var(--lados)',6),svg);el('line',lineAttrs(x0+s1*S,Y0-h,x1,Y0-h,'var(--angulos)',6),svg);
+      el('circle',{cx:x0+s1*S,cy:Y0-h,r:6,fill:'var(--bad)'},svg);
+      const gt=el('text',{x:x0+s1*S,y:Y0-h-16,'text-anchor':'middle',fill:'var(--bad)','font-size':14},svg);gt.textContent='se tocan, pero quedan acostados';
+    }
+    const l1=el('text',{x:x0+s1*S/2,y:Y0-h+24,'text-anchor':'middle',fill:'var(--lados)','font-size':14},svg);l1.textContent=`${n1} = ${s1}`;
+    const l2=el('text',{x:x1-s2*S/2,y:Y0-h+24,'text-anchor':'middle',fill:'var(--angulos)','font-size':14},svg);l2.textContent=`${n2} = ${s2}`;
+    [x0,x1].forEach(x=>el('line',{x1:x,y1:Y0,x2:x,y2:Y0-h,stroke:'var(--muted)','stroke-width':1.5,'stroke-dasharray':'3 4'},svg));
+  }
+  const fb=$('dgFb');fb.className='fb '+(ok?'ok':'bad');
+  fb.innerHTML=ok?`¡Se puede! Los dos lados más cortos suman ${s1} + ${s2} = ${sum} cm, que es más que ${L} cm.`
+    :sum===L?`No se puede. ${s1} + ${s2} = ${sum} cm, igual al lado más largo. Los lados se juntan, pero quedan planos sobre la base y no se forma un triángulo.`
+    :`No se puede. ${s1} + ${s2} = ${sum} cm, menos que ${L} cm. Los dos lados cortos no llegan a tocarse.`;
+}
+dgDraw();
 
 $('snd').onclick=()=>{SOUND=!SOUND;store.set('tri-sound',SOUND);sndUI();if(SOUND)sfx('ok')};sndUI();
 
