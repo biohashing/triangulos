@@ -492,11 +492,11 @@ svgCo.addEventListener('contextmenu',e=>e.preventDefault());
 function coNew(){let t;do{t=COMBOS[ri(0,COMBOS.length-1)]}while(CO.target&&t===CO.target);CO.target=t;CO.solved=false;
   const g=t[0]==='equi'?'tri':'sq';if(g!==CO.grid){CO.grid=g;CO.pts=GRIDS[g].start.map(p=>p.slice());coDrawGrid()}
   $('coTarget').innerHTML=`<span class="l">${LADOS[t[0]]}</span> <span class="a">${ANGS[t[1]].toLowerCase()}</span>`;
-  $('coTip').textContent='Arrastrá los puntos azules. Cuando dos lados midan igual aparecen las rayitas, y si hay un ángulo de 90° aparece el cuadradito. '+(t[0]==='esc'?'':'Mientras arrastrás un punto, los puntitos celestes marcan dónde quedarían dos lados iguales. ')+'Pista: '+TIPS[t.join('-')];$('coFb').hidden=true;$('coGo').textContent='¡Listo!';$('coScore').textContent=`✅ ${CO.done} armados`;coDraw()}
+  $('coTip').textContent='Arrastrá los puntos azules. Cuando dos lados midan igual aparecen las rayitas, y si hay un ángulo de 90° aparece el cuadradito. '+(t[0]==='esc'?'':'Mientras arrastrás un punto, los puntitos celestes marcan dónde quedarían dos lados iguales. ')+'Pista: '+TIPS[t.join('-')];$('coFb').hidden=true;$('coGo').textContent='¡Listo!';$('coScore').textContent=`✅ ${CO.done} armado${CO.done===1?'':'s'}`;coDraw()}
 $('coGo').onclick=()=>{if(CO.solved){coNew();return}const m=coMeasure(),fb=$('coFb');fb.hidden=false;
   if(m.cross===0){sfx('bad');fb.className='fb bad';fb.innerHTML='Eso no es un triángulo: los tres puntos están en línea.';return}
   const c=coClassify(m),[tl,ta]=CO.target;
-  if(c.l===tl&&c.a===ta){CO.solved=true;CO.done++;store.set('tri-built',CO.done);fb.className='fb ok';fb.innerHTML=`¡Lo lograste! Es ${LADOS[tl].toLowerCase()} ${ANGS[ta].toLowerCase()}.`;$('coGo').textContent='Siguiente desafío';$('coScore').textContent=`✅ ${CO.done} armados`;confetti();sfx('win')}
+  if(c.l===tl&&c.a===ta){CO.solved=true;CO.done++;store.set('tri-built',CO.done);fb.className='fb ok';fb.innerHTML=`¡Lo lograste! Es ${LADOS[tl].toLowerCase()} ${ANGS[ta].toLowerCase()}.`;$('coGo').textContent='Siguiente desafío';$('coScore').textContent=`✅ ${CO.done} armado${CO.done===1?'':'s'}`;confetti();sfx('win')}
   else{sfx('bad');fb.className='fb bad';let h=`Ahora es <b>${LADOS[c.l].toLowerCase()} ${ANGS[c.a].toLowerCase()}</b>.`;
     if(c.l!==tl)h+=`<p>Lados: ${tl==='equi'?'necesitás los tres exactamente iguales.':tl==='iso'?'necesitás exactamente dos iguales.':'necesitás los tres distintos.'}</p>`;
     if(c.a!==ta)h+=`<p>Ángulos: ${ta==='rect'?'necesitás uno de 90° justo.':ta==='obt'?'necesitás uno de más de 90°.':'todos tienen que ser de menos de 90°.'}</p>`;fb.innerHTML=h}};
@@ -558,7 +558,7 @@ function dgDraw(){
     if(sum<L){
       el('line',lineAttrs(x0,Y0-h,x0+s1*S,Y0-h,'var(--lados)',6),svg);el('line',lineAttrs(x1,Y0-h,x1-s2*S,Y0-h,'var(--angulos)',6),svg);
       el('line',{x1:x0+s1*S,y1:Y0-h,x2:x1-s2*S,y2:Y0-h,stroke:'var(--bad)','stroke-width':3,'stroke-dasharray':'4 5'},svg);
-      const gt=el('text',{x:(x0+s1*S+x1-s2*S)/2,y:Y0-h-16,'text-anchor':'middle',fill:'var(--bad)','font-size':14},svg);gt.textContent=`faltan ${L-sum} cm`;
+      const gt=el('text',{x:(x0+s1*S+x1-s2*S)/2,y:Y0-h-16,'text-anchor':'middle',fill:'var(--bad)','font-size':14},svg);gt.textContent=`falta${L-sum===1?'':'n'} ${L-sum} cm`;
     }else{
       el('line',lineAttrs(x0,Y0-h,x0+s1*S,Y0-h,'var(--lados)',6),svg);el('line',lineAttrs(x0+s1*S,Y0-h,x1,Y0-h,'var(--angulos)',6),svg);
       el('circle',{cx:x0+s1*S,cy:Y0-h,r:6,fill:'var(--bad)'},svg);
